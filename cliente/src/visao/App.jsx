@@ -14,34 +14,39 @@ const App = () => {
   let conteudo
 
   switch (estado) {
-  case EnumEstados.INICIAL: {
-    conteudo = <Button label='Obter Dados' onClick={() => setEstado(EnumEstados.EXIBINDO)}/>
-    break
-  }
-  case EnumEstados.EXIBINDO: {
-    if (dados === undefined)
-      break
-    const dadosDoGrafico = {
-      labels: dados.meses,
-      datasets: [
-        {
-          label: 'Visitantes',
-          backgroundColor: 'blue',
-          data: dados.visitantes
-        }
-      ]
+    case EnumEstados.INICIAL: {
+      conteudo = <Button label='Obter Dados' onClick={() => setEstado(EnumEstados.PESQUISANDO)}/>
+        break
     }
-    conteudo = 
-      <Panel header='Dados dos Visisantes'>
+    case EnumEstados.EXIBINDO: {
+      const dadosDoGrafico = {
+        labels: dados.meses,
+        datasets: [
+          {
+            label: 'Visitantes',
+            backgroundColor: 'blue',
+            data: dados.visitantes
+          }
+        ]
+      }
+      conteudo =
+        <Panel header='Dados dos Visisantes'>
         <Button label='Fechar' onClick={fechaGrafico}/>
         <Chart type='bar' data={dadosDoGrafico}/>
-      </Panel>
-  }
+        </Panel>
+      break
+    }
+    case EnumEstados.PESQUISANDO: {
+      conteudo =
+        <Panel header='Dados dos Visitantes'>
+          Procurando...
+        </Panel>
+    }
   }
 
   return (
     <Panel header='UFSC - CTC - INE INE5646 - App Visitantes'>
-      <div>{conteudo}</div>
+    <div>{conteudo}</div>
     </Panel>
   )
 
@@ -51,18 +56,25 @@ function useModelo() {
   const EnumEstados = {
     INICIAL : 0,
     EXIBINDO : 1,
+    PESQUISANDO : 2,
   }
   const [estado, setEstado] = useState(EnumEstados.INICIAL)
   const [dados, setDados] = useState(undefined)
 
   useEffect(() => {
-    if (estado === EnumEstados.EXIBINDO && dados === undefined) {
-      window.fetch('/dados')
-        .then(r => r.json())
-        .then((dadosEmArray) => {
-          setDados(extraiMesesEVisitantes(dadosEmArray))
-        })
-    }  
+    console.log(`state change: ${estado}`)
+    if (estado === EnumEstados.PESQUISANDO) {
+      if (dados === undefined) {
+        console.log('fetching...')
+        window.fetch('/dados')
+          .then(r => r.json())
+          .then((dadosEmArray) => {
+            setDados(extraiMesesEVisitantes(dadosEmArray))
+            console.log('done (setDados)')
+            setEstado(EnumEstados.EXIBINDO)
+          })
+      }
+    }
   }, [estado])
 
 
@@ -76,7 +88,7 @@ function useModelo() {
 
 /**
  * dados : [ [mes, visitantes], ..., [mes, visitantes]]
- * 
+ *
  * retorna : {meses: [mes, ..., mes], visitantes: [visitantes, ..., visitantes]}
  */
 function extraiMesesEVisitantes(dados) {
